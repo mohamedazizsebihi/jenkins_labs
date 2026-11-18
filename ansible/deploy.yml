@@ -1,0 +1,116 @@
+# Déploiement de demo-app (image Docker) sur une instance Ubuntu, avec mémoire des versions pour le rollback.
+#   ansible-playbook -i "<IP>," -u ubuntu ansible/deploy.yml -e image_name=<registre>/lab11/jenkins-demo-app -e image_tag=1.0.0
+#   ... -e rollback=true    -> redéploie la version précédente mémorisée
+# Modules intégrés uniquement (aucune collection requise). L'instance tire l'image ECR grâce à son rôle IAM.
+- name: Déployer demo-app
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    container_name: demo-app
+    host_port: 80
+    app_port: 5000
+    state_dir: /opt/demo-app
+    image_tag: latest
+    rollback: false
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: Vérifier les variables obligatoires
+      ansible.builtin.assert:
+        that:
+          - image_name is defined
+          - image_name | length > 0
+        fail_msg: "image_name est obligatoire (-e image_name=<registre>/<dépôt>)"
+
+    - name: Installer Docker et l'assistant d'authentification ECR
+      ansible.builtin.apt:
+        name: [docker.io, amazon-ecr-credential-helper]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+        lock_timeout: 300
+
+    - name: Démarrer Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Répertoires de configuration et d'état
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop: [/root/.docker, "{{ state_dir }}"]
+
+    - name: Docker s'authentifie sur ECR avec le rôle IAM de l'instance (aucun mot de passe)
+      ansible.builtin.copy:
+        dest: /root/.docker/config.json
+        content: '{ "credHelpers": { "{{ image_name.split("/")[0] }}": "ecr-login" } }'
+        mode: "0600"
+
+    - name: Lire les versions mémorisées
+      ansible.builtin.slurp:
+        src: "{{ state_dir }}/versions.json"
+      register: versions_raw
+      failed_when: false
+
+    - name: Versions courante / précédente
+      ansible.builtin.set_fact:
+        versions: "{{ (versions_raw.content | b64decode | from_json) if versions_raw.content is defined else {'current': '', 'previous': ''} }}"
+
+    - name: Tag à déployer
+      ansible.builtin.set_fact:
+        target_tag: "{{ versions.previous if (rollback | bool) else image_tag }}"
+
+    - name: Rollback impossible sans version précédente
+      ansible.builtin.assert:
+        that: target_tag | length > 0
+        fail_msg: "Aucune version précédente mémorisée : rollback impossible"
+
+    - name: Télécharger l'image
+      ansible.builtin.command: docker pull {{ image_name }}:{{ target_tag }}
+      register: pull
+      changed_when: "'Downloaded newer image' in pull.stdout"
+
+    - name: Conteneur en cours d'exécution ?
+      ansible.builtin.command: docker ps -q --filter name=^{{ container_name }}$
+      register: running
+      changed_when: false
+
+    - name: (Re)créer le conteneur sur le port {{ host_port }}
+      when: target_tag != versions.current or running.stdout == '' or pull is changed
+      ansible.builtin.shell: |
+        docker rm -f {{ container_name }} >/dev/null 2>&1 || true
+        docker run -d --name {{ container_name }} --restart unless-stopped \
+          -p {{ host_port }}:{{ app_port }} {{ image_name }}:{{ target_tag }}
+
+    - name: Vérifier /health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ host_port }}/health"
+        return_content: true
+      register: health
+      until: health.status == 200 and (health.json.status | default('')) == 'up'
+      retries: 15
+      delay: 2
+
+    - name: Mémoriser les versions pour le rollback
+      ansible.builtin.copy:
+        dest: "{{ state_dir }}/versions.json"
+        content: "{{ new_versions | to_nice_json }}"
+        mode: "0644"
+      vars:
+        new_versions:
+          current: "{{ target_tag }}"
+          previous: "{{ versions.current if target_tag != versions.current else versions.previous }}"
+
+    - name: Version servie
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ host_port }}/"
+        return_content: true
+      register: home
+
+    - name: Résultat
+      ansible.builtin.debug:
+        msg: "demo-app {{ home.json.version }} servie sur le port {{ host_port }} ({{ 'rollback' if rollback | bool else 'deploy' }} de {{ target_tag }})"
