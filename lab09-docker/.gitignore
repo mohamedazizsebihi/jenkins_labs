@@ -1,0 +1,7 @@
+# Aucun secret dans Git
+*.env
+secrets*
+*token*
+!*.env.example
+# Captures et logs du rapport : restent en local
+rapport/

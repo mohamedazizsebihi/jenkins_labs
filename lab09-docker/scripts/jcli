@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Wrapper du CLI Jenkins.
+# Authentification (quand la sécurité sera activée) : exporter JENKINS_USER_ID et
+# JENKINS_API_TOKEN, le CLI les lit tout seul.
+set -euo pipefail
+URL="${JENKINS_URL:-http://localhost:8080/}"
+JAR="${JENKINS_CLI_JAR:-$HOME/labs/jenkins/jenkins-cli.jar}"
+[ -f "$JAR" ] || curl -fsSo "$JAR" "${URL%/}/jnlpJars/jenkins-cli.jar"
+exec java -jar "$JAR" -s "$URL" "$@"

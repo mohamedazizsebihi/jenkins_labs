@@ -18,7 +18,7 @@ echo "== list-credentials"
 $JCLI list-credentials "$STORE"
 
 echo "== get-credentials-as-xml (Jenkins masque le secret)"
-$JCLI get-credentials-as-xml "$STORE" "$DOMAIN" "$CRED_ID"
+$JCLI get-credentials-as-xml "$STORE" "$DOMAIN" "$CRED_ID"; echo
 
 echo "== delete-credentials $CRED_ID"
 $JCLI delete-credentials "$STORE" "$DOMAIN" "$CRED_ID"
