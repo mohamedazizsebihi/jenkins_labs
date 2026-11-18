@@ -1,4 +1,6 @@
 """Petite application Flask de démonstration pour le pipeline Jenkins."""
+import os
+
 from flask import Flask, jsonify
 
 app = Flask(__name__)
@@ -9,9 +11,14 @@ def add(a, b):
     return a + b
 
 
+def app_version():
+    """Version injectée au build de l'image (ARG/ENV APP_VERSION)."""
+    return os.environ.get("APP_VERSION", "dev")
+
+
 @app.route("/")
 def index():
-    return jsonify(message="Hello Jenkins", status="ok")
+    return jsonify(message="Hello Jenkins", status="ok", version=app_version())
 
 
 @app.route("/health")

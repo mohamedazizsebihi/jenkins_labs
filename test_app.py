@@ -28,3 +28,8 @@ def test_health(client):
 def test_add_route(client):
     response = client.get("/add/4/6")
     assert response.get_json() == {"result": 10}
+
+
+def test_index_version(client, monkeypatch):
+    monkeypatch.setenv("APP_VERSION", "42")
+    assert client.get("/").get_json()["version"] == "42"
