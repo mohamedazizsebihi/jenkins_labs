@@ -1,0 +1,25 @@
+# Lab 10 - Agents permanents déclarés par le code : un agent n'existe QUE par ce fichier
+jenkins:
+  nodes:
+    - permanent:
+        name: "agent-ssh-1"
+        nodeDescription: "Agent SSH permanent (conteneur jenkins/ssh-agent, 127.0.0.1:2222)"
+        numExecutors: 2
+        remoteFS: "/home/jenkins/agent"
+        labelString: "linux ssh-agent"
+        # EXCLUSIVE : n'accepte que les builds dont l'expression de label correspond à ce nœud
+        mode: EXCLUSIVE
+        retentionStrategy: "always"
+        launcher:
+          ssh:
+            host: "localhost"
+            port: 2222
+            credentialsId: "agent-ssh-key"
+            javaPath: "/opt/java/openjdk/bin/java"
+            launchTimeoutSeconds: 60
+            maxNumRetries: 5
+            retryWaitTime: 10
+            # Clé d'hôte relevée au démarrage du conteneur (pas de "non verifying")
+            sshHostKeyVerificationStrategy:
+              manuallyProvidedKeyVerificationStrategy:
+                key: "${readFile:/etc/jenkins/files/agent-ssh-1.hostkey}"

@@ -1,0 +1,8 @@
+# Configuration de base du contrôleur (Lab 10)
+jenkins:
+  systemMessage: "Jenkins des labs - configuration gérée par JCasC (jenkins-as-code)"
+  # 4 exécuteurs : branches parallèles et cellules de matrice tournent sur le contrôleur (label docker)
+  numExecutors: 4
+  mode: NORMAL
+  # Le contrôleur a accès au démon Docker (Lab 09) -> il porte le label "docker"
+  labelString: "docker"
