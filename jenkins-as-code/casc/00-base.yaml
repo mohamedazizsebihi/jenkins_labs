@@ -1,8 +1,17 @@
-# Configuration de base du contrôleur (Lab 10)
+# Configuration de base du contrôleur (Labs 10-11)
 jenkins:
   systemMessage: "Jenkins des labs - configuration gérée par JCasC (jenkins-as-code)"
   # 4 exécuteurs : branches parallèles et cellules de matrice tournent sur le contrôleur (label docker)
   numExecutors: 4
   mode: NORMAL
-  # Le contrôleur a accès au démon Docker (Lab 09) -> il porte le label "docker"
+  # Le contrôleur a accès au démon Docker (Lab 09) et à Ansible (Lab 11) -> label "docker"
   labelString: "docker"
+  # Variables globales des builds, valeurs lues dans /etc/jenkins/secrets.env (hors Git)
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "ECR_REGISTRY"
+            value: "${ECR_REGISTRY}"
+          # Ansible moderne (ansible-core 2.17, /opt/ansible) prioritaire sur l'Ansible 2.10 d'apt
+          - key: "PATH+ANSIBLE"
+            value: "/opt/ansible/bin"

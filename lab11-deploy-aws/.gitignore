@@ -1,0 +1,9 @@
+# Aucun secret ni état AWS dans Git
+*.env
+*.pem
+secrets*
+*token*
+.aws-state.env
+!*.env.example
+rapport/
+.last-build
