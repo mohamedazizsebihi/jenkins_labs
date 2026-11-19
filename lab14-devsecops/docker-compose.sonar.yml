@@ -1,0 +1,52 @@
+# Lab 14 - SonarQube Community + PostgreSQL, et relais du webhook SonarQube -> Jenkins.
+#   Prérequis : sysctl vm.max_map_count=524288 (Elasticsearch embarqué)
+#   docker compose -f docker-compose.sonar.yml up -d      (.env : SONAR_DB_PASSWORD, généré par 01-sonar-up.sh)
+name: lab14-sonar
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: lab14-sonar-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD:?SONAR_DB_PASSWORD manquant dans .env}
+      POSTGRES_DB: sonar
+    volumes:
+      - sonar-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar -d sonar"]
+      interval: 5s
+      retries: 30
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: lab14-sonarqube
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:9000:9000"          # accessible uniquement depuis le poste
+    volumes:
+      - sonar-data:/opt/sonarqube/data
+      - sonar-extensions:/opt/sonarqube/extensions
+      - sonar-logs:/opt/sonarqube/logs
+
+  jenkins-relay:
+    build: ./relay
+    image: lab14-jenkins-relay:1
+    container_name: lab14-jenkins-relay
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2223:22"
+
+volumes:
+  sonar-db:
+  sonar-data:
+  sonar-extensions:
+  sonar-logs:

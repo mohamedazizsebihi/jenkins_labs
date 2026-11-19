@@ -1,0 +1,15 @@
+# Relais du webhook : uniquement « ssh -R 0.0.0.0:8080:... » par l'utilisateur tunnel, par clé
+Port 22
+PermitRootLogin no
+AllowUsers tunnel
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+AllowTcpForwarding remote
+GatewayPorts clientspecified
+PermitListen 0.0.0.0:8080
+PermitOpen none
+PermitTTY no
+X11Forwarding no
+AllowAgentForwarding no
+ForceCommand /bin/false

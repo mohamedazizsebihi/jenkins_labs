@@ -1,0 +1,11 @@
+# Aucun secret ni état local dans Git
+.env
+*.env
+!*.env.example
+*.key
+*token*
+secrets*
+relay/authorized_keys
+.git-server/
+.last-build
+rapport/

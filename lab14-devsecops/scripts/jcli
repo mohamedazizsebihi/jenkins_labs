@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Wrapper du CLI Jenkins. Jenkins est sécurisé depuis le Lab 11 :
+# ~/.jenkins-lab.env exporte JENKINS_USER_ID / JENKINS_API_TOKEN (lus automatiquement par le CLI).
+set -euo pipefail
+[ -f "$HOME/.jenkins-lab.env" ] && . "$HOME/.jenkins-lab.env"
+URL="${JENKINS_URL:-http://localhost:8080/}"
+JAR="${JENKINS_CLI_JAR:-$HOME/labs/jenkins/jenkins-cli.jar}"
+[ -f "$JAR" ] || curl -fsSo "$JAR" "${URL%/}/jnlpJars/jenkins-cli.jar"
+exec java -jar "$JAR" -s "$URL" "$@"

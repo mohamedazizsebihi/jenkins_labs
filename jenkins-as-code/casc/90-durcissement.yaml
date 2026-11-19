@@ -1,0 +1,15 @@
+# Lab 14 - Durcissement du contrôleur Jenkins (vérifié par scripts/audit-durcissement.groovy)
+jenkins:
+  disableRememberMe: true          # pas de cookie « se souvenir de moi » : une session volée ne dure pas
+  markupFormatter: "plainText"     # descriptions en texte brut : pas de HTML/JS injecté (XSS stockée)
+  remotingSecurity:
+    enabled: true                  # contrôle d'accès agent -> contrôleur
+  slaveAgentPort: -1               # port TCP des agents inbound fermé (agents SSH uniquement)
+
+security:
+  apiToken:
+    creationOfLegacyTokenEnabled: false      # aucun jeton legacy (dérivé du mot de passe)
+    tokenGenerationOnCreationEnabled: false  # pas de jeton créé automatiquement pour chaque utilisateur
+    usageStatisticsEnabled: true             # dates d'usage : repérer les jetons dormants
+  # SSHD : le module « sshd » (CLI par SSH) n'est pas installé -> Jenkins n'ouvre aucun port SSH.
+  # S'il l'était :  sSHD: { port: -1 }
